@@ -1,17 +1,4 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
-
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
-
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
-
-## Project Overview
-
-This example project includes:
-
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+## Token ERC-20 VAI-DAR-PE-COIN
 
 ## Usage
 
@@ -29,6 +16,19 @@ You can also selectively run the Solidity or `node:test` tests:
 npx hardhat test solidity
 npx hardhat test nodejs
 ```
+
+Run tests specific contract:
+
+```shell
+ npx hardhat test solidity contracts/Counter.t.sol 
+ ```
+
+### Rodando No Local
+
+```shell
+npx hardhat node
+```
+
 
 ### Make a deployment to Sepolia
 
@@ -54,4 +54,10 @@ After setting the variable, you can run the deployment with the Sepolia network:
 
 ```shell
 npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+```
+
+Para fazer o verify do contrato:
+
+```shell
+npx hardhat ignition verify --network sepolia NOME_DEPLOY_DA_PASTA_DEPLOYMENTS_IGNITION --show-stack-traces
 ```
