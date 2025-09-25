@@ -11,8 +11,6 @@ contract VaiDarPeCoinTest is Test {
 
   function setUp() public {
     vai = new VaiDarPeCoin();
-   // address carteira2 = 0x0000000000000000000000000000000011123456;
-   // address carteira3 = 0x0000000000000000000000000000000023123212;
   }
 
   function testInitialBalance() public view {
