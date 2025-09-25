@@ -1,9 +1,14 @@
+import * as chai from "chai";
+
 import { createPublicClient, createWalletClient, formatEther, http } from "viem";
 import { describe, it } from "node:test";
 
 import assert from "node:assert/strict";
-import { hardhat } from "viem/chains";
+import chaiAsPromised from "chai-as-promised";
+import { expect } from "chai";
 import { network } from "hardhat";
+
+chai.use(chaiAsPromised);
 
 describe ("Teste no contrato ERC-20 VaiDarPeCoin", async function(){
   const {viem} = await network.connect();
@@ -62,23 +67,52 @@ describe ("Teste no contrato ERC-20 VaiDarPeCoin", async function(){
   });
 
   it("carteira 2 tentar transferir 200 para carteira 3 (deve dar erro)", async function () {
-    
+    const [carteira1, carteira2, carteira3] = await viem.getWalletClients();
+    const vai = await viem.deployContract("VaiDarPeCoin");
+    await vai.write.transfer([carteira2.account.address, 100n]);
+    await expect(vai.write.transferFrom([carteira2.account.address, carteira3.account.address, 200n])).to.be.rejectedWith("Saldo Insuficiente");    
   });
 
   it("carteira 2 autoriza carteira 3 de fazer transferências em seu nome no valor de 50", async function () {
-    
+    const [carteira1, carteira2, carteira3] = await viem.getWalletClients();
+    const vai = await viem.deployContract("VaiDarPeCoin");
+    await expect(vai.write.approve([carteira3.account.address, 50n])).to.be.fulfilled;
   });
 
   it("consultar allowance na carteira 2 para carteira 3 (deve retornar 50)", async function () {
+    const [carteira2, carteira3] = await viem.getWalletClients();
+    const vai = await viem.deployContract("VaiDarPeCoin");
+   // await vai.write.transfer([carteira2.account.address, 100n]);
+    await vai.write.approve([carteira3.account.address, 50n]);
+    const p1 = await vai.read.allowances([carteira2.account.address, carteira3.account.address]);
+    const p2 = await vai.read.allowances([carteira3.account.address, carteira2.account.address]);
     
+    //console.log(`Allowance de C2 para C3: ${p1}`);
+   // console.log(`Allowance de C3 para C2: ${p2}`);
+
+    const operacao = (await vai.read.allowances([carteira2.account.address, carteira3.account.address]));
+    assert.equal(50n, operacao);
   });
 
   it("consultar allowance na carteira 2 para carteira 1 (deve retornar 0)", async function () {
-    
+    const [carteira1, carteira2, carteira3] = await viem.getWalletClients();
+    const vai = await viem.deployContract("VaiDarPeCoin");
+    const operacao = (await vai.read.allowances([carteira2.account.address, carteira1.account.address]));
+    assert.equal(0n, operacao);
   });
 
   it("owner (1) tentar transferir da carteira 2 para a 3 (deve falhar, ele não tem permissão na carteira 2)", async function () {
-    
+    const [carteira1, carteira2, carteira3] = await viem.getWalletClients();
+    const vai = await viem.deployContract("VaiDarPeCoin",[], {client: {wallet: carteira1}});
+
+    await vai.write.approve([carteira3.account.address, 50n]);
+    const p1 = await vai.read.allowances([carteira1.account.address, carteira2.account.address]);
+    const p2 = await vai.read.allowances([carteira1.account.address, carteira3.account.address]);
+    const p3 = await vai.read.allowances([carteira2.account.address, carteira3.account.address]);
+    console.log(`Allowance de C1 para C2: ${p1}`);
+    console.log(`Allowance de C1 para C3: ${p2}`);
+    console.log(`Allowance de C2 para C3: ${p3}`);
+    await expect(vai.write.transferFrom([carteira2.account.address, carteira3.account.address, 20n])).to.be.rejectedWith("Saldo Insuficiente");
   });
 
   it("carteira 3 transfere 30 da carteira 2 para owner (1)", async function () {
@@ -98,3 +132,4 @@ describe ("Teste no contrato ERC-20 VaiDarPeCoin", async function(){
   });  
   
 });
+
