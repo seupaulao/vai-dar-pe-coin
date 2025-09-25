@@ -1,26 +1,64 @@
-import { createPublicClient, createWalletClient, http } from "viem";
+import { createPublicClient, createWalletClient, formatEther, http } from "viem";
 import { describe, it } from "node:test";
 
 import assert from "node:assert/strict";
 import { hardhat } from "viem/chains";
 import { network } from "hardhat";
 
-describe ("Teste no contrato ERC-20 VaiDarPeCoin", function(){
+describe ("Teste no contrato ERC-20 VaiDarPeCoin", async function(){
+  const {viem} = await network.connect();
+  const publicClient = await viem.getPublicClient();
 
+  it("get saldo de 2 carteiras da rede publica", async function () {
+    //const vai = await viem.deployContract("VaiDarPeCoin");
+    const qty = 10000000000000000000000n;
+    //assert.equal(qty, await vai.read.totalSupply());
+    const [carteira1, carteira2] = await viem.getWalletClients();
+    const carteira1Balance = await publicClient.getBalance({address: carteira1.account.address});
+    //const carteira2Balance = await publicClient.getBalance({address: carteira2.account.address});
+    //console.log(`Saldo de ${carteira1.account.address} : ${formatEther(carteira1Balance)} ETH`);
+   //console.log(`Saldo de ${carteira2.account.address} : ${formatEther(carteira2Balance)} ETH`);
+    assert.equal(formatEther(qty), formatEther(carteira1Balance));
+
+   // assert.equal(qty, await vai.read.balanceOf(carteira1.getAddresses()));
+    
+  });
+  
   it("owner (carteira 1) transfere 100 para carteira 2", async function () {
-    
+    const [carteira1, carteira2] = await viem.getWalletClients();
+    const vai = await viem.deployContract("VaiDarPeCoin");
+    //const qty = 10000000000000000000000n;
+    const tot = await vai.read.totalSupply();
+    //console.log(`Saldo C1: ${await vai.read.balanceOf([carteira1.account.address])} `);
+    //console.log(`Saldo C2: ${await vai.read.balanceOf([carteira2.account.address])} `);
+    await vai.write.transfer([carteira2.account.address, 100n]);
+    console.log(`Saldo total inicial: ${formatEther(tot)} ETHERS = ${tot} WEI`);
+    console.log(`Saldo C1: ${await vai.read.balanceOf([carteira1.account.address])} `);
+    console.log(`Saldo C2: ${await vai.read.balanceOf([carteira2.account.address])} `);
   });
-
+  
   it("consultar o saldo do owner e ver que diminuiu 100", async function () {
-    
+    const [carteira1, carteira2] = await viem.getWalletClients();
+    const vai = await viem.deployContract("VaiDarPeCoin");
+    await vai.write.transfer([carteira2.account.address, 100n]);
+    const operacao = (await vai.read.totalSupply()) - (await vai.read.balanceOf([carteira1.account.address]));
+    assert.equal(100n, operacao);
   });
 
-  it("consultar o saldo da carteira 2 e ver que virou 100", async function () {
-    
+  it("consultar o saldo da carteira 2 e ver que aumentou 100", async function () {
+    const [carteira1, carteira2] = await viem.getWalletClients();
+    const vai = await viem.deployContract("VaiDarPeCoin");
+    await vai.write.transfer([carteira2.account.address, 100n]);
+    const operacao = (await vai.read.balanceOf([carteira2.account.address]));
+    assert.equal(100n, operacao);
   });
 
   it("consultar o saldo da carteira 3 e ver 0", async function () {
-    
+    const [carteira1, carteira2, carteira3] = await viem.getWalletClients();
+    const vai = await viem.deployContract("VaiDarPeCoin");
+    await vai.write.transfer([carteira2.account.address, 100n]);
+    const operacao = (await vai.read.balanceOf([carteira3.account.address]));
+    assert.equal(0n, operacao);
   });
 
   it("carteira 2 tentar transferir 200 para carteira 3 (deve dar erro)", async function () {

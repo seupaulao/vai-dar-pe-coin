@@ -1,0 +1,1338 @@
+
+## BlockChain Local com o HardHat
+### Executando uma blockchain local
+
+Com o projeto criado, é hora de subir o nó local, com o comando abaixo:
+
+```MS DOS
+ 
+npx hardhat node
+ 
+```
+ 
+Se tudo foi feito corretamente, o terminal vai subir uma blockchain chamada HardHat Network 
+e apresentar uma série de contas de teste cheias de fundos para usar, com seus respectivos 
+endereços públicos e chaves privadas.
+
+Muita atenção aqui: essas carteiras funcionam apenas na sua blockchain local, que acabou de subir. 
+Não adianta querer transferir os fundos delas ou para elas que vai dar ruim, não vai funcionar. 
+Aliás, esta é a mesma rede que o HardHat sobe para executar seus testes unitários automatizados.
+
+Outra opção é subir a HardHat Network forkando alguma rede existente, para ter um clone do 
+estado dela, incluindo a Mainnet da Ethereum. O segredo aqui é que só funciona se você 
+possui conta na Infura ou Alchemy, pois deve fornecer a API URL desses provedores de 
+blockchain as a service junto ao parâmetro fork, como abaixo:
+
+```JavaScript
+ 
+npx hardhat node --fork <url infura ou alchemy>
+
+```
+ 
+Isso é especialmente útil para testar contratos que já estão em produção, embora as carteiras 
+são sempre somente aquelas 10 que você recebe quando o nó termina de subir. As contas das 
+redes forkadas não são clonadas.
+
+Independente se você subiu uma blockchain zerada ou um fork, basta manter este terminal 
+funcionando, sem interrompê-lo e você terá uma blockchain local rodando em 
+http://127.0.0.1:8545 na sua máquina com chainId 31337, seguindo todo o padrão Ethereum, 
+apenas zerada, sem o histórico de blocos da mesma. Se precisar usar o VS Code para alguma 
+outra coisa, recomendo abrir outra janela.
+
+Uma última dica ainda nesse tópico, é configurar no seu package.json o script de start 
+para subir essa blockchain local:
+
+```JavaScript
+ 
+"scripts": {
+  "start": "npx hardhat node"
+},
+```
+
+Assim, sempre que quiser subi-la (ou mesmo deixando sempre up com PM2) você pode rodar 
+com o comando abaixo, bem mais simples.
+
+```MS DOS 
+npm start
+```
+
+### Configurando uma carteira
+
+Agora que você tem uma blockchain local rodando na sua máquina, outra dica é você 
+configurar sua carteira MetaMask para algumas das contas de teste. 
+Isso é especialmente útil se estiver testando uma aplicação web3 (dapp), pois ela 
+vai precisar se conectar com sua carteira no browser. Sendo assim, a primeira coisa 
+que deve fazer é configurar uma nova rede na MetaMask.
+
+Vá em redes, adicionar rede, adicionar manualmente, para ter acesso ao formulário de 
+adição de redes. Preencha como abaixo:
+
++ Nome da Rede: HardHat
++ Novo URL da RPC: http://localhost:8545 ou http://127.0.0.1:8545
++ ID da cadeia: 31337 (caso tenha problema, veja este artigo)
++ Símbolo da moeda: ETH
+
+Salve e selecione a rede HardHat na sua MetaMask para ver a sua carteira zerada.
+
+Agora o próximo e último passo é configurar alguma das contas de teste geradas pra 
+gente pelo HardHat, de preferência a primeira para evitar confusão. Para isso, 
+copie a chave privada dela que apareceu no terminal e volte na MetaMask, acessando a 
+guia Contas no topo, adicionar contas ou carteiras, importar e informa a sua chave privada.
+
+Com isso, agora você tem uma blockchain local rodando e sua carteira apontada para ela. 
+Você irá reparar que vão aparecer alguns avisos no terminal da sua blockchain, 
+indicando que ela recebeu alguns comandos (da MetaMask neste caso). Isso é especialmente 
+útil para ver que ela está recebendo as calls e transactions corretamente.
+
+**Atenção:** se você precisar reiniciar a HardHat Network depois de ter importado 
+contas na MetaMask vai ter de remover e importar as contas novamente ou ao menos 
+limpar o cache de atividades da carteira **(Settings > Advanced > Clear Cache)** 
+porque ela se perde completamente.
+
+
+Já quando ele pedir as configurações da blockchain para deploy, use estas:
+
+```JavaScript
+ 
+networks: {
+  local: {
+    chainId: 31337,
+    url: "http://127.0.0.1:8545/",
+    accounts: {
+      mnemonic: "test test test test test test test test test test test junk"
+    }
+  }
+},
+```
+ 
+Apenas atenção especial ao mnemonic, que é o default do HardHat e vinculado 
+àquelas carteiras que você viu no terminal quando inicializou o node dele.
+
+Para executar o script de deploy, é da mesma forma que já deve estar 
+acostumado, um exemplo abaixo.
+
+```MS DOS
+ 
+npx hardhat run scripts/deploy.ts --network local
+
+```
+ 
+Certifique-se de consultar o terminal do HardHat Network que você subiu para se 
+certificar que o deploy ocorreu nele com sucesso.
+
+### Testando com HardHat Console
+Outro recurso muito útil, uma vez que você esteja com um nó da HardHat Network 
+rodando na sua máquina, é abrir outro terminal com o HardHat Console. 
+Para isso, rode o comando abaixo (local é o nome da minha rede no hardhat.config.js).
+
+```MS DOS
+ 
+npx hardhat console --network local
+
+```
+ 
+Vai iniciar um CLI de controle da HardHat Network no seu terminal, onde usando a 
+biblioteca EthersJS você consegue enviar comandos para a blockchain. 
+Como a maioria dos comandos são assíncronos, não esqueça de usar await para que 
+esperar pelo término deles (felizmente o HH Console já um inclui todos os comandos 
+de uma função async por padrão, então não se preocupe com isso.
+
+Qualquer comando que você faria com EthersJS vai fazer funcionar. Por exemplo para 
+consultar o saldo de uma conta, use o código abaixo.
+
+```JavaScript
+ 
+const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+await provider.getBalance("<address>");
+
+```
+
+E para carregar um contrato instalado na HH Network e executar uma função dele, 
+você pode fazer como abaixo (o contrato em questão já deve estar na blockchain 
+após um deploy bem sucedido pois você precisa do endereço dele):
+
+```JavaScript
+ 
+const contract = await ethers.getContractAt("ContractName", "0x0000");
+await contract.methodName();
+```
+ 
+Outra tarefa necessária eventualmente é se conectar em nome de outra conta, 
+dentre as existentes na blockchain. O código abaixo mostra como pegar contas 
+de teste e se conectar no contrato usando uma delas (o padrão é sempre usar 
+a owner/primeira).
+
+```JavaScript
+ 
+const [owner, otherAccount] = await ethers.getSigners();
+const contract = await ethers.getContractAt("ContractName", "0x0000", otherAccount);
+```
+ 
+Agora tudo que você fizer com contract, será realizado no mesmo contrato, 
+mas em nome da otherAccount.
+
+-----------------------------------------------------------------
+
+## TESTES
+### Conceitos Básicos : Fixture
+Antes de cada teste é comum executarmos um script de setup da blockchain de testes 
+através de uma função de fixture, como abaixo.
+
+
+async function deployFixture() {
+  const [owner, otherAccount] = await ethers.getSigners();
+  const LuizCoin = await ethers.getContractFactory("LuizCoin");
+  const luizCoin = await LuizCoin.deploy();
+  return { luizCoin, owner, otherAccount };
+}
+
+Repare que esta função serve para obter contas de teste e fazer o deploy de um contrato “zerado”, 
+retornando estes objetos para uso dos testes. Claro, você ainda pode fazer qualquer outro tipo de setup aqui, 
+como transferências, chamadas de funções e preparação de qualquer outro objeto. 
+Olhe outro exemplo, mais complexo, que faz bem mais do que o anterior.
+
+
+
+async function deployFixture() {
+  //deploying a test coin
+  const CerberusCoin = await ethers.getContractFactory("CerberusCoin");
+  const cerberusCoin = await CerberusCoin.deploy();
+
+  const response = await cerberusCoin.waitForDeployment();
+  const coinAddress = await response.getAddress();
+
+  //deploying de main contract
+  const CerberusPay = await ethers.getContractFactory("CerberusPay");
+  const cerberusPay = await CerberusPay.deploy();
+
+  await cerberusPay.waitForDeployment();
+  const cerberusAddress = await cerberusPay.getAddress();
+
+  //setting the test coin for the contract
+  await cerberusPay.setAcceptedToken(coinAddress);
+
+  const [owner, otherAccount] = await ethers.getSigners();
+
+  //adding test balance
+  await cerberusCoin.mint(otherAccount.address, ethers.parseEther("1"));
+
+  return { cerberusPay, cerberusCoin, cerberusAddress, owner, otherAccount };
+}
+
+
+Note como fazemos o deploy de um token ERC-20 (CerberusCoin) para ser usados nos testes, depois de um protocolo 
+DeFi (CerberusPay), depois usamos uma função do protocolo para definir qual moeda será usada e mintamos tokens 
+para um usuário de teste, retornando todos os objetos que usaremos nos testes.
+
+Independente se sua função de fixture é simples ou mais complexa, em todos os testes você deverá obter uma blockchain 
+configurada através dela, através de um código parecido com o abaixo.
+
+
+```csharp
+it("Should withdraw", async function () {
+  const { cerberusPay, cerberusCoin, cerberusAddress, owner, otherAccount } = await loadFixture(deployFixture);
+  ///...
+```
+
+Mas Luiz, porque não chamamos a função deployFixture diretamente ao invés de usar loadFixture passando deployFixture?
+
+Porque é uma fixture, ou seja, um template ou combinação de objetos a serem usados nos testes. 
+As etapas da fixture não são todas executadas antes de cada teste ou eles demorariam demais para acontecer, 
+elas são executadas uma vez, na primeira vez que loadFixture chamar ela, e mantida em cache para que seja 
+usada antes de cada teste. Assim, cada teste terá uma cópia da fixture, mas não precisará executá-la do zero.
+  
+### cenario de sucesso - expect simples
+
+
+it("Should has the correct name", async () => {
+  const { luizCoin } = await loadFixture(deployFixture);
+  const name = await luizCoin.name() as string;
+  expect(name).to.equal("LuizCoin", "The name is wrong");
+});
+
+
+No teste acima, que é de um token ERC-20, verificamos se o nome da moeda está correto usando um expect com to.equal, 
+fornecendo inclusive como segundo parâmetro a mensagem de erro personalizada, algo completamente opcional e que não 
+costumo usar muito, mas vale a pena ser mencionado. Os expects de cenários de sucesso esperam sempre um valor por parâmetro, 
+então atente-se ao uso de await quando chamar as funções do smart contract que está sendo testado. 
+Outra variação do mesmo teste poderia ser como abaixo.
+
+JavaScript
+ 
+it("Should has the correct name", async () => {
+  const { luizCoin } = await loadFixture(deployFixture);
+  expect(await luizCoin.name()).to.equal("LuizCoin");
+});
+ 
+O resultado final do teste é o mesmo, mas com menos linhas de código.  
+  
+Além do to.equal você pode fazer comparações como:
+
+* to.greaterThan
+* to.greaterThanOrEqual
+* to.lessThan
+* to.lessThanOrEqual
+E uma infinidade de operadores para serem aplicados em resultados multivalorados (arrays) também. 
+Você também vai reparar, navegando pelo autocomplete do VS Code vários sinônimos, ou seja, formas iguais de escrever 
+os mesmos testes. Na prática, sendo bem sincero, para cenários de sucesso eu costumo usar apenas o to.equal em 
+90% dos casos, mas enfim, as opções estão aí.
+
+### cenario de sucesso - expect transações
+
+Existem ocasiões em que você precisa testar transações na blockchain, ou seja, funções que escrevem na mesma e que 
+portanto retornam sempre um recibo de transação e não um valor simples que pode ser comparado. Nesses casos você 
+tem duas opções de como escrever os testes.
+
+O jeito mais simples de conseguir fazer um expect que diga se a transação funcionou ou não é chamando uma 
+função de leitura que verifique a variável que foi alterada pela transação, como abaixo, em um teste de 
+transferência de saldo onde usamos a função de balance para ver se os saldos foram alterados. 
+Além disso, o exemplo abaixo mostra a possibilidade de usar múltiplos expects, algo desejável em diversos 
+cenários em que apenas uma variável não garante que o teste passou 100%.
+
+```JavaScript
+ 
+it("Should transfer", async () => {
+  const qty = 1n * 10n ** DECIMALS;
+ 
+  const { luizCoin, owner, otherAccount } = await loadFixture(deployFixture);
+  const balanceAdminBefore = await luizCoin.balanceOf(owner.address);
+  const balanceToBefore = await luizCoin.balanceOf(otherAccount.address);
+ 
+  await luizCoin.transfer(otherAccount.address, qty);
+ 
+  const balanceAdminNow = await luizCoin.balanceOf(owner.address);
+  const balanceToNow = await luizCoin.balanceOf(otherAccount.address);
+ 
+  expect(balanceAdminNow).to.equal(balanceAdminBefore - qty, "The admin balance is wrong");
+  expect(balanceToNow).to.equal(balanceToBefore + qty, "The to balance is wrong");
+});
+```
+ 
+Note que eu sequer pego o retorno da chamada de transfer, que é a função-alvo do nosso teste. 
+Ao invés disso, eu pego os saldos antes e depois do “from” e do “to” e comparo eles para ver se as quantias 
+estão corretas com um expect simples novamente. Isso geralmente é possível de fazer, mas caso você não possua 
+funções de leitura que entreguem o dado atualizado que precisa, o caminho é a segunda opção.
+
+A opção 2, testar se um evento foi emitido após a transação, é interessante em dois cenários: 
+
+* no cenário em que você tem essa opção (a função emite eventos) e 
+* no cenário que você deseja testar de fato se o evento está sendo emitido corretamente. 
+
+Independente da situação, o exemplo de código abaixo mostra como testar se um determinado evento 
+foi emitido após uma transação.
+
+```JavaScript 
+it("Should close voting (CHANGE_QUOTA)", async function () {
+    const { adapter, manager, accounts } = await loadFixture(deployAdapterFixture);   
+    await adapter.addTopic("topic 1", "description 1", Category.CHANGE_QUOTA, 100, manager.address);
+    await adapter.openVoting("topic 1");
+    await addVotes(adapter, 20, accounts);
+    await expect(adapter.closeVoting("topic 1")).to.emit(adapter, "QuotaChanged").withArgs(100);
+});
+```
+ 
+Este teste está ligeiramente reduzido pois é de um sistema bem complexo (uma DAO de condomínio), mas ilustra o expect de evento. 
+Um expect de evento espera uma promise ao invés de um valor literal pois ele precisará capturar (catch) 
+o resultado da transação usando o .to.emit, onde passamos no primeiro parâmetro o contrato e no segundo o nome do evento. 
+Opcionalmente, você ainda pode usar o withArgs para incluir no expect os argumentos do evento (basta passar os valores em ordem).
+
+Aqui vale um ponto de atenção: o expect deve receber uma promise, então não use await na função que estamos testando. 
+No entanto, use await antes do expect pois ele precisa ser resolvido para o que teste seja dado como finalizado.
+
+### Cenários de Fracasso
+
+Como nem tudo são flores, após escrever os testes de sucesso das suas funcionalidades 
+do smart contract é hora de se preocupar com os cenários de fracasso ou de falha. 
+Nestes cenários, o seu smart contract deve emitir um erro adequado, geralmente usando 
+funções como require, revert e outras. Para testar esses erros de execução você deve 
+sempre passar ao expect uma promise, para que ele consiga fazer o catch da exceção e a 
+função de comparação será a revertedWith ou a revertedWithCustomError, dependendo da 
+forma que o erro está sendo emitido pelo contrato.
+
+Caso o erro seja emitido usando o tipo genérico, onde você apenas passa uma mensagem, 
+o seu expect se parecerá como abaixo, onde deve informar exatamente a mensagem de erro 
+completa que será emitida.
+
+```JavaScript
+ 
+it("Should NOT has URI metadata", async function () {
+  const { contract } = await loadFixture(deployFixture);
+ 
+  await expect(contract.uri(10))
+    .to.be.revertedWith("This token does not exists");
+});
+```
+ 
+Note que devo colocar um await antes do expect a fim de que o teste somente termine 
+quando a promise da função for finalizada com erro. Só para ajudar no entendimento, 
+abaixo você encontra o trecho de código que dispara o erro anteriormente testado 
+(é um contrato ERC-1155).
+
+```JavaScript
+ 
+function uri(uint256 id) public pure override returns (string memory) {
+    require(id < 3, "This token does not exists");
+    return string.concat(BASE_URL, Strings.toString(id), ".json");
+}
+```
+ 
+Agora se o erro emitido não é genérico mas sim um erro personalizado (custom error), 
+você deverá usar o revertedWithCustomError, informando a instância do contrato no 
+primeiro parâmetro e o nome exato do custom error no segundo, como abaixo.
+
+```JavaScript
+ 
+it("Should NOT burn (balance)", async function () {
+  const { contract, owner } = await loadFixture(deployFixture);
+ 
+  await expect(contract.burn(owner.address, 0, 1))
+    .to.be.revertedWithCustomError(contract, "ERC1155InsufficientBalance");
+});
+```
+ 
+Esse tipo de erro é muito usado em bibliotecas profissionais de smart contracts 
+como a OpenZeppelin. Abaixo, exemplo de código onde o erro anteriormente capturado 
+foi emitido, no smart contract da OpenZeppelin (omiti algumas partes que não agregam a este exemplo).
+
+```JavaScript
+ 
+function _update(address from, address to, uint256[] memory ids, uint256[] memory values) internal virtual {
+    //...
+ 
+    for (uint256 i = 0; i < ids.length; ++i) {
+        uint256 id = ids.unsafeMemoryAccess(i);
+        uint256 value = values.unsafeMemoryAccess(i);
+ 
+        if (from != address(0)) {
+            uint256 fromBalance = _balances[id][from];
+            if (fromBalance < value) {
+                revert ERC1155InsufficientBalance(from, fromBalance, value, id);
+            }
+            unchecked {
+                // Overflow not possible: value <= fromBalance
+                _balances[id][from] = fromBalance - value;
+            }
+        }
+ 
+        if (to != address(0)) {
+            _balances[id][to] += value;
+        }
+    }
+ 
+    //...
+}
+
+```
+ 
+Em 99% dos testes de falhas em smart contracts você usará as duas funções acima.
+
+### Truques em Testes
+
+Para fechar este artigo com chave de ouro, que tal eu passar alguns “truques” que uso 
+na escrita dos meus testes? Nenhum deles é segredo, na verdade alguns provavelmente 
+você já conhece, mas acho que vale a pena serem mencionados aqui para garantir que o 
+conhecimento seja passado adiante.
+
+#### Connect
+
+Primeiro, você deve saber que tanto o deploy quanto a execução dos testes sempre são 
+realizados em nome da conta owner, a primeira das contas de teste que a HardHat Network 
+gera pra gente, certo? Mas e quando queremos impersonar outra carteira, ou seja, 
+executar uma função em nome de outra conta que não o owner do contrato?
+
+Neste caso devemos usar a função connect, presente no objeto contract, que permite passar 
+um novo signer pra ela e terá como retorno uma nova instância do contrato. 
+Esta nova instância tem as mesmas funções do contrato original, mas todas elas serão 
+executadas como sendo da conta que você informou no connect.
+
+```JavaScript
+ 
+it("Should NOT add resident (permission)", async function () {
+  const { contract, manager, accounts } = await loadFixture(deployFixture);
+ 
+  const instance = contract.connect(accounts[1]);
+  await expect(instance.addResident(accounts[1].address, 2102)).to.be.revertedWith("Only the manager or the council can do this");
+});
+```
+ 
+Uma atenção especial em relação ao connect é que qualquer função de teste que exija 
+a passagem da instância do contrato deverá usar instance ao invés de contract neste 
+caso, como no próprio exemplo acima, em que estamos testando um erro na instância 
+“connectada” ao invés do contract original, que não disparou erro algum.
+
+#### ZeroAddress
+
+Muitas vezes precisamos de um endereço zerado para realizar um teste, geralmente para 
+simular um erro ou então para verificar um retorno zerado. 
+
+Ao invés de escrever “0x0000000000000000000000000000000000000000” você pode usar a constante 
+ethers.ZeroAddress, que tem exatamente esse valor definido, ficando muito mais elegante 
+no seu código de teste, como abaixo.
+
+```JavaScript
+ 
+it("Should NOT add resident (address)", async function () {
+  const { contract, manager, accounts } = await loadFixture(deployFixture);
+ 
+  await expect(contract.addResident(ethers.ZeroAddress, 2102))
+    .to.be.revertedWith("Invalid address")
+});
+```
+ 
+#### Time
+
+Eventualmente você terá de testar funcionalidades sensíveis ao tempo, como por exemplo 
+cobranças de mensalidades ou timelocks (travas de tempo). Nesses casos você tem de 
+ter um mecanismo que “viaje no tempo” para que a blockchain de testes esteja em uma 
+data futura entre duas instruções de um teste. Pensando nisso o HardHat fornece um 
+objeto chamado time que permite justamente manipulações do tempo da blockchain.
+
+O primeiro passo para usar o time é importá-lo no módulo de testes, como abaixo.
+
+```JavaScript
+ 
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+ 
+```
+
+Depois, você pode usá-lo através de uma série de funções como por exemplo a 
+setNextBlockTimestamp, onde definimos o timestamp do próximo bloco que será 
+registrado na blockchain, lembrando que a HardHat Network minera um bloco a 
+cada transação, então essa função define o timestamp em que a próxima transação 
+será registrada, permitindo por exemplo a simulação de dias no futuro, como abaixo.
+
+```JavaScript
+ 
+it("Should pay quota", async function () {
+  const { contract, manager, accounts } = await loadFixture(deployFixture);
+ 
+  const instance = contract.connect(accounts[1]);
+  await instance.payQuota(2102, { value: ethers.parseEther("0.01") });
+ 
+  const resident = await contract.getResident(accounts[1].address);
+ 
+  //pay again, 31 days after
+  await time.setNextBlockTimestamp(parseInt(`${(Date.now() / 1000) + (31 * 24 * 60 * 60)}`));
+ 
+  await instance.payQuota(2102, { value: ethers.parseEther("0.01") });
+  const residentAfter = await contract.getResident(accounts[1].address);
+ 
+  expect(residentAfter.nextPayment).to.equal(resident.nextPayment + BigInt(30 * 24 * 60 * 60));
+});
+```
+
+ 
+Outra forma de fazer esse tipo de movimentação do tempo é com a função increase. 
+A diferença entre as duas funções é que a primeira seta o timestamp específico 
+do próximo bloco, enquanto que a função abaixo “aumenta” o timestamp em cima do atual.
+
+```JavaScript
+ 
+it("Should do second payment after revoke", async function () {
+  const { destripe, destripeAddress, destripeCoin, otherAccount } = await loadFixture(deployFixture);
+ 
+  const instance = destripeCoin.connect(otherAccount);
+  await instance.approve(destripeAddress, ethers.parseEther("0.01"));
+ 
+  await destripe.pay(otherAccount.address);
+ 
+  await time.increase(31 * 24 * 60 * 60);
+ 
+  await instance.approve(destripeAddress, ethers.parseEther("0.00001"));
+ 
+  await expect(destripe.pay(otherAccount.address)).to.emit(destripe, "Revoked");
+ 
+  await instance.approve(destripeAddress, ethers.parseEther("1"));
+  await expect(destripe.pay(otherAccount.address)).to.emit(destripe, "Granted");
+});
+```
+ 
+#### Funções Auxiliares
+
+Outra dica muito útil é na sua bateria de testes você ter funções auxiliares, 
+ou seja, funções que realizam algumas atividades que auxiliem nos testes.
+
+Mas Luiz, isso não deveria estar contemplado na função de fixture?
+
+Não necessariamente, já que a função de fixture é o modelo GERAL de setup 
+para os testes. Muitas vezes existem setups específicos de ALGUNS testes 
+ou mesmo este setup pode exigir parametrização diferente para testes diferentes. 
+Como exemplo trago abaixo uma função auxiliar de uma DAO, onde quero 
+poder adicionar votos em alguns testes para conseguir simular o volume 
+de votos que alguns cenários de teste exigem.
+
+```JavaScript
+ 
+async function addVotes(contract: Condominium, count: number, accounts: SignerWithAddress[], shouldApprove: boolean = true) {
+  for (let i = 1; i <= count; i++) {
+    const instance = contract.connect(accounts[i - 1]);
+    await instance.vote("topic 1", shouldApprove ? Options.YES : Options.NO);
+  }
+}
+
+```
+
+Assim, com uma função addVotes eu posso adicionar quantos votos eu 
+quiser e com os parâmetros que quiser em cada teste individual sem 
+comprometer os demais e sem ficar com um monte de linhas de código 
+repetidas na minha bateria de testes.
+
+------------------------------------------------------------------------------
+
+## Criando um ERC-20 Token
+
+
+```
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract LuizCoin { 
+
+}
+```
+A OpenZeppelin é uma empresa conhecida mundialmente na área de cripto e 
+blockchain por oferecer produtos e serviços na área de segurança de 
+aplicações decentralizadas. Como alguns códigos Solidity são muito 
+frequentes, como os códigos de padrões ERC, e é muito fácil de você deixar 
+brechas em smart contracts para atacantes, eles resolvem os dois problemas 
+fornecendo bibliotecas de contratos open-source já testados e auditados 
+extensivamente para você usar, além de serviços de auditoria requisitados 
+por grandes players do mercado.
+
+Assim, vamos instalar a biblioteca de contratos deles em nosso projeto e 
+você verá os ganhos que ela vai nos trazer logo mais.
+
+```MS DOS
+ 
+npm install @openzeppelin/contracts
+```
+ 
+Repare que estou usando a versão 0.8.20 ou superior no meu contrato, você 
+deve usar a versão que possuir instalada na sua máquina, a partir da que 
+informei acima. E por fim, vamos deixar a estrutura de nossos testes preparada, 
+criando na pasta test um arquivo LuizCoin.test.ts e deixando a estrutura abaixo nele.
+
+```JavaScript
+ 
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
+import { ethers } from "hardhat";
+ 
+describe("LuizCoin", () => {
+ 
+  const DECIMALS = 18n;
+ 
+  async function deployFixture() {
+    const [owner, otherAccount] = await ethers.getSigners();
+    const LuizCoin = await ethers.getContractFactory("LuizCoin");
+    const luizCoin = await LuizCoin.deploy();
+    return { luizCoin, owner, otherAccount };
+  }
+});
+```
+ 
+Aqui estamos carregando as importações necessárias, definindo uma suíte 
+de testes (describe), criando a constante que define quantas casas decimais 
+teremos na nossa moeda e criando a função de deploy fixture, que serve 
+para o contrato ser provisionado apenas uma vez e limpo a cada teste, 
+além de termos acesso às carteiras de teste.
+
+Agora na pasta scripts vamos criar um arquivo deploy.ts colocando o código 
+necessário para fazer o deploy do seu contrato apenas.
+
+```JavaScript
+ 
+import { ethers } from "hardhat";
+ 
+async function main() {
+  const LuizCoin = await ethers.getContractFactory("LuizCoin");
+  const luizCoin = await LuizCoin.deploy();
+ 
+  await luizCoin.waitForDeployment();
+  const address = await luizCoin.getAddress();
+ 
+  console.log(`Contract LuizCoin deployed to ${address}!`);
+}
+ 
+// We recommend this pattern to be able to use async/await everywhere
+// and properly handle errors.
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+ 
+Agora temos o setup do nosso projeto de novo token pronto, é hora de programarmos ele!
+
+### Contrato de Token
+
+```
+/SPDX-License-Identifier: MIT
+ 
+pragma solidity ^0.8.20;
+ 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+ 
+contract LuizCoin is ERC20 {
+	constructor() ERC20("LuizCoin", "LUC"){
+	_mint(msg.sender, 1000 * 10 ** 18);
+      }
+}
+```
+
+### Testes
+
+Agora abra o arquivo LuizCoin.test.ts na pasta test e vamos escrever nosso 
+primeiro teste, que irá verificar se o saldo total do token foi transferido 
+para a carteira de quem fez o deploy do contrato (vulgo admin/owner).
+
+```javascript
+it("Should put total supply LuizCoin in the admin account", async () => {
+  const { luizCoin, owner } = await loadFixture(deployFixture);
+  const balance = await luizCoin.balanceOf(owner.address);
+  const totalSupply = 1n * 10n ** 18n;
+  expect(balance).to.equal(totalSupply, "Total supply wasn't in the first account");
+});
+
+
+it("Should has the correct name", async () => {
+  const { luizCoin } = await loadFixture(deployFixture);
+  const name = await luizCoin.name() as string;
+  expect(name).to.equal("LuizCoin", "The name is wrong");
+});
+
+
+
+it("Should has the correct symbol", async () => {
+  const { luizCoin } = await loadFixture(deployFixture);
+  const symbol = await luizCoin.symbol() as string;
+  expect(symbol).to.equal("LUC", "The symbol is wrong");
+});
+
+
+
+it("Should has the correct decimals", async () => {
+  const { luizCoin } = await loadFixture(deployFixture);
+  const decimals = await luizCoin.decimals();
+  expect(decimals).to.equal(DECIMALS, "The decimals are wrong");
+});
+
+
+
+it("Should transfer", async () => {
+  const qty = 1n * 10n ** 18n;
+
+  const { luizCoin, owner, otherAccount } = await loadFixture(deployFixture);
+  const balanceAdminBefore = await luizCoin.balanceOf(owner.address);
+  const balanceToBefore = await luizCoin.balanceOf(otherAccount.address);
+
+  await luizCoin.transfer(otherAccount.address, qty);
+
+  const balanceAdminNow = await luizCoin.balanceOf(owner.address);
+  const balanceToNow = await luizCoin.balanceOf(otherAccount.address);
+
+  expect(balanceAdminNow).to.equal(balanceAdminBefore - qty, "The admin balance is wrong");
+  expect(balanceToNow).to.equal(balanceToBefore + qty, "The to balance is wrong");
+});
+
+
+
+it("Should NOT transfer", async () => {
+  const aboveSupply = 1001n * 10n ** 18n;
+  const { luizCoin, owner, otherAccount } = await loadFixture(deployFixture);
+
+  await expect(luizCoin.transfer(otherAccount.address, aboveSupply))
+    .to.be.revertedWithCustomError(luizCoin, "ERC20InsufficientBalance");
+});
+
+
+
+it("Should approve", async () => {
+  const qty = 1n * 10n ** 18n;
+
+  const { luizCoin, owner, otherAccount } = await loadFixture(deployFixture);
+  await luizCoin.approve(otherAccount.address, qty);
+  const allowedAmount = await luizCoin.allowance(owner.address, otherAccount.address);
+
+  expect(qty).to.equal(allowedAmount, "The allowed amount is wrong"); ``
+});
+
+
+
+it("Should transfer from", async () => {
+  const qty = 1n * 10n ** 18n;
+
+  const { luizCoin, owner, otherAccount } = await loadFixture(deployFixture);
+  const allowanceBefore = await luizCoin.allowance(owner.address, otherAccount.address);
+  const balanceAdminBefore = await luizCoin.balanceOf(owner.address);
+  const balanceToBefore = await luizCoin.balanceOf(otherAccount.address);
+
+  await luizCoin.approve(otherAccount.address, qty);
+
+  const instance = luizCoin.connect(otherAccount);
+  await instance.transferFrom(owner.address, otherAccount.address, qty);
+
+  const allowanceNow = await luizCoin.allowance(owner.address, otherAccount.address);
+  const balanceAdminNow = await luizCoin.balanceOf(owner.address);
+  const balanceToNow = await luizCoin.balanceOf(otherAccount.address);
+
+  expect(allowanceBefore).to.equal(allowanceNow, "The allowance is wrong");
+  expect(balanceAdminNow).to.equal(balanceAdminBefore - qty, "The admin balance is wrong");
+  expect(balanceToNow).to.equal(balanceToBefore + qty, "The to balance is wrong");
+});
+
+
+
+it("Should NOT transfer from", async () => {
+  const qty = 1n * 10n ** 18n;
+  const { luizCoin, owner, otherAccount } = await loadFixture(deployFixture);
+
+  await expect(luizCoin.transferFrom(owner.address, otherAccount.address, qty))
+    .to.be.revertedWithCustomError(luizCoin, "ERC20InsufficientAllowance");
+});
+```
+
+
+Agora experimente rodar a bateria de testes com ‘npxhardhat test’
+
+
+------------------------------------------------------------------------------
+
+
+## Cobertura de Código - HardHat
+
+### Setup do Projeto
+
+Crie uma pasta no seu computador chamada code-coverage e rode os 
+seguintes comandos para criar um projeto HardHat do zero nela.
+
+```shell
+ 
+mkdir code-coverage
+cd code-coverage
+npm init -y
+npm i hardhat
+npx hardhat init
+```
+
+Avance até o final no assistente de configuração de projeto do HardHat, 
+escolhendo TypeScript e confirmando as demais opções.
+
+Usaremos um smart contract pronto, de um novo token ERC-20 que se você 
+quiser aprender como construir do zero pode fazê-lo com este outro tutorial aqui. 
+Agora se quiser apenas pegar ou olhar o smart contract em questão, 
+ele está no meu GitHub, neste link, chama-se LuizCoin.
+
+Certifique-se de que LuizCoin.sol está na sua pasta contracts (exclua o antigo) 
+e crie um arquivo LuizCoin.test.ts na pasta de testes, excluindo o arquivo 
+original que estava lá. Neste novo arquivo de testes, deixe como abaixo.
+
+```js 
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import { expect } from "chai";
+import { ethers } from "hardhat";
+ 
+
+describe("LuizCoin Tests", function () {
+  async function deployFixture() {
+    const [owner, otherAccount] = await ethers.getSigners();
+ 
+    const LuizCoin = await ethers.getContractFactory("LuizCoin");
+    const contract = await LuizCoin.deploy();
+ 
+    return { contract, owner, otherAccount };
+  }
+ 
+  it("Should set the right unlockTime", async function () {
+    const { contract, owner, otherAccount } = await loadFixture(deployFixture);
+ 
+    //expect(await contract.testFunction()).to.equal(x);
+  });
+});
+```
+
+Pronto, agora você tem tudo que é necessário para começarmos!
+
+A primeira coisa que você tem de entender é como obter e como interpretar os 
+indicadores de code coverage do HardHat. Para isso, o primeiro passo é, ao 
+invés de executar o comando regular para executar os testes (npx hardhat test), 
+você deve executar o comando de cobertura de testes abaixo.
+
+```shell
+npx hardhat coverage
+```
+
+------------------------------------------------------------------------------
+
+## VIEM
+
+Temos o prazer de anunciar a mais nova adição aos nossos plugins oficiais — hardhat-viem. 
+Este plugin integra perfeitamente a biblioteca Viem aos projetos Hardhat para uma experiência 
+de desenvolvimento mais agradável. Além disso, estamos apresentando uma alternativa 
+baseada em Viem ao Hardhat Toolbox .
+
+Por que Viem?
+Viem é uma alternativa leve ao ethers.js desenvolvida pela equipe por trás do Wagmi . 
+Ele é construído em torno de funções de baixo nível e sem estado, o que resulta em 
+uma API explícita e combinável. Ele também utiliza recursos avançados do TypeScript 
+para oferecer uma ótima experiência ao desenvolvedor. Você pode aprender mais 
+sobre sua filosofia aqui .
+
+Por que hardhat-viem?
+O hardhat-viem plugin fornece auxiliares que simplificam casos de uso comuns e se 
+integram perfeitamente aos contratos do seu projeto, eliminando a necessidade de 
+duplicar ABIs. O foco do Viem na componibilidade é poderoso, mas pode levar a um 
+código prolixo em certos cenários. Por exemplo, com nosso novo hardhat-viem plugin, 
+é possível implementar um contrato como este:
+
+```
+const initialSupply = 1000n * 10n ** 18n ; 
+const token = await hre.viem.deployContract ("Token" , [initialSupply]);
+```
+
+Em contraste, sem o plugin seria necessário fazer isto:
+
+```
+const  tokenAbi = [{ 
+    entradas: [], 
+    nome: "totalSupply" , 
+    saídas: [{ tipo: "uint256" }], 
+    stateMutability: "view" , 
+    tipo: "function" , 
+}, /* ... */ ] como  const ; 
+
+const  hash = await walletClient. deployContract ({ 
+  abi : tokenAbi, 
+  bytecode : "0x..." , 
+  args : [ 1000 n * 10 n ** 18 n], 
+}); 
+const  recibo = await publicClient. waitForTransactionReceipt ({ hash }); 
+
+const  token = getContract ({ 
+  endereço : recibo.contractAddress!, 
+  publicClient, 
+  walletClient, 
+  abi : tokenAbi, 
+});
+```
+
+O hardhat-viem plugin protege você dessas complexidades em casos de uso comuns.
+
+### Início rápido
+Para criar um novo projeto Hardhat com Viem, inicialize um projeto como você 
+normalmente faz , mas selecione a opção “Criar um projeto TypeScript (com Viem)” .
+
+Você também pode tentar hardhat-viem em um projeto existente, mesmo que ele use 
+hardhat-ethers, já que ambos os plugins são compatíveis. Para isso, basta instalar 
+o `@nomicfoundation/hardhat-viem` pacote e adicioná-lo à sua configuração.
+
+### Clientes
+O Viem fornece um conjunto de interfaces para interagir com o blockchain.  
+Ele as encapsula e as configura automaticamente com base nas configurações 
+do seu projeto Hardhat para uma experiência perfeita.
+
+Digite seu e-mail
+
+Esses clientes são adaptados para interações específicas:
+
+* O cliente público busca informações do nó da API JSON-RPC “pública”.
+* O Wallet Client interage com contas Ethereum para tarefas como transações e assinatura de mensagens.
+* O cliente de teste executa ações que estão disponíveis apenas em nós de desenvolvimento.
+
+Você pode acessar clientes via `hre.viem`. 
+Leia nossa documentação para saber mais sobre o HRE . 
+Veja abaixo um exemplo de como usar os clientes públicos e de carteira:
+
+* Crie um diretório scripts/clients.ts dentro do seu projeto.
+* Adicione este código a scripts/clients.ts:
+
+```javascript
+import { parseEther, formatEther } de  "viem" ; 
+import hre de  "hardhat" ; 
+
+//função assíncrona  
+
+main ( ) { 
+const [bobWalletClient, aliceWalletClient] = await hre.viem.getWalletClients(); 
+const publicClient = await hre.viem.getPublicClient (); 
+const bobBalance = await publicClient.getBalance ({ endereço : bobWalletClient.conta.endereço ,   }); 
+console.log ( `Saldo de ${bobWalletClient. conta. endereço} : ${formatEther(       bobBalance     )} ETH`   ); 
+const hash = await bobWalletClient.sendTransaction ({ para : aliceWalletClient.conta.endereço , valor : parseEther ( "1" ),   }); 
+await publicClient.waitForTransactionReceipt ({ hash }); } 
+
+main ().then ( () => process. exit ())
+       .catch ( 
+            ( erro ) => { 
+                console . error (erro);     
+                process. exit ( 1 );   
+                });
+```
+
+3. Execute npx hardhat run scripts/clients.ts.
+
+Para documentação mais detalhada sobre clientes, visite o site do plugin hardhat-viem e o site oficial do Viem .
+
+Contratos
+O Viem também oferece funcionalidade para interação com contratos e hardhat-viemwrappers 
+para os métodos mais úteis. Além disso, gera tipos para seus contratos, aprimorando 
+a verificação de tipos e as sugestões do IDE.
+
+Use o hre.viemobjeto para obter esses auxiliares, de forma semelhante à utilização de clientes. 
+O próximo exemplo mostra como obter uma instância de contrato e chamar um de seus métodos:
+
+Crie um MyToken.solarquivo dentro do diretório do seu projeto contracts:
+
+```
+// SPDX-License-Identifier: MIT
+ pragma solidity ^ 0.8 .19 ; 
+
+contract MyToken { 
+  uint256 public totalSupply; 
+
+  constructor ( uint256 _initialSupply ) { 
+    totalSupply = _initialSupply; 
+  } 
+
+  function  increaseSupply ( uint256 _amount ) public { 
+    require (_amount > 0 , "O valor deve ser maior que 0" ); 
+    totalSupply += _amount; 
+  } 
+
+  function  getCurrentSupply ( ) public view returns (uint256) { 
+    return totalSupply; 
+  } 
+}
+```
+
+2. Execute npx hardhat compilepara compilar seus contratos e produzir tipos no artifacts diretório.
+
+3. Crie um contracts.ts dentro do diretório de scripts :
+
+```
+import hre from  "hardhat" ; 
+
+async  function  main ( ) { 
+  const myToken = await hre.viem.deployContract ( " MyToken " , [ 1_000_000n ]); 
+  const initialSupply = await myToken.read.getCurrentSupply (); 
+  console.log ( `Fornecimento inicial de MyToken: $ {initialSupply} ` ) ; 
+  await myToken.write.aumentSupply ( [ 500_000n ]); 
+  // increaseSupply envia uma tx , então precisamos esperar que ela seja minerada 
+  const publicClient = await hre.viem.getPublicClient ( ); 
+  await publicClient.waitForTransactionReceipt ( {hash} ); 
+  const newSupply = await myToken.read.getCurrentSupply ( ) ; 
+  console.log (`Novo fornecimento de MyToken: ${newSupply}`); 
+} 
+  main()
+    .then ( () => process. exit ( 0 ))   
+    .catch ( ( error ) => { 
+                console.error (error);     
+                process. exit ( 1 );   
+          });
+```
+
+4. Abra seu terminal e execute npx hardhat run scripts/contracts.ts. 
+Isso implantará o MyTokencontrato, chamará a increaseSupply()função 
+e exibirá o novo fornecimento no seu terminal.
+
+Teste
+Neste exemplo, testaremos o MyTokencontrato, abrangendo cenários 
+como aumento de fornecimento e reversões esperadas de operação.
+
+Criar um test/my-token.tsarquivo:
+
+```
+import hre from  "hardhat" ; 
+import { assert, expect } from  "chai" ; 
+import { loadFixture } from  "@nomicfoundation/hardhat-toolbox-viem/network-helpers" ; 
+
+// Uma função de implantação para configurar o estado inicial const 
+
+deploy  = async ( ) => { 
+  const myToken = await hre.viem.deployContract ( "MyToken" , [ 1_000_000n ]); 
+  return { myToken }; 
+}; 
+  describe ( "Testes de contrato MyToken" , function ( ) { 
+     it ( "deve aumentar o fornecimento corretamente" , async function ( ) { 
+      // Carregue a instância do contrato usando a função de implantação 
+      const { myToken } = await loadFixture (deploy); 
+      
+      // Obtenha o fornecimento inicial 
+      const initialSupply = await myToken.read.getCurrentSupply (); 
+      
+      // Aumente o fornecimento 
+      await myToken.write.increaseSupply ([ 500_000n ]); 
+      
+      // Obtenha o novo fornecimento após o aumento 
+      const newSupply = await myToken.read.getCurrentSupply (); 
+      
+      // Afirme que o fornecimento aumentou conforme o esperado     
+      assert. equal (initialSupply + 500_000n , newSupply);   }
+     ); 
+      
+      it( "deve reverter ao aumentar o fornecimento em menos de 1" , async function ( ) { 
+        // Carregue a instância do contrato usando a função de implantação 
+        const { myToken } = await loadFixture (deploy); 
+        
+        // Tentativa de aumentar o fornecimento em 0 (o que deve falhar) 
+        await expect (myToken
+           .write
+           .increaseSupply ([ 0n ]))
+              .to
+              .be
+              .rejectWith ( "O valor deve ser maior que 0");   
+      }); 
+  });
+```
+
+2. Abra seu terminal e execute `npx hardhat test` para executar esses testes.
+
+------------------------------------------------------------------------------
+
+## Dicas VIEM 
+
+### Configurar
+Se você já inicializou um projeto baseado em viem usando hardhat --init, não precisa fazer mais nada.
+Se você quiser adicionar o plugin manualmente:
+Instale o plugin:
+
+```
+npm install --save-dev @nomicfoundation/hardhat-viem
+
+# or
+pnpm install --save-dev @nomicfoundation/hardhat-viem
+
+# or
+yarn add --dev @nomicfoundation/hardhat-viem
+```
+
+Adicione-o à lista de plugins na sua configuração do Hardhat:
+
+```
+import hardhatViem from "@nomicfoundation/hardhat-viem";
+
+const config: HardhatUserConfig = {
+  plugins: [
+    hardhatViem,
+    // ...other plugins...
+  ],
+  // ...other config...
+};
+
+export default config;
+```
+
+### Conectando a redes
+
+No Hardhat, você interage com redes usando conexões de rede. 
+Você pode criar conexões com o gerenciador de rede, que podem ser importadas diretamente do Hardhat:
+
+```
+import { network } from "hardhat";
+const connection = await network.connect();
+```
+
+Os plugins podem estender os objetos retornados pelo gerenciador de rede. 
+O hardhat-viemplugin os estende com uma viempropriedade, que fornece auxiliares 
+para interagir com a rede à qual você se conectou:
+
+```
+const { viem } = await network.connect();
+const publicClient = await viem.getPublicClient();
+console.log("Latest block number:", await publicClient.getBlockNumber());
+```
+
+### Usando clientes viem
+
+clientes publicos
+```
+const { viem } = await network.connect();
+
+const publicClient = await viem.getPublicClient();
+
+console.log("Latest block number:", await publicClient.getBlockNumber());
+
+```
+
+
+
+clientes de carteira
+```
+const [senderClient, receiverClient] = await viem.getWalletClients();
+
+await senderClient.sendTransaction({
+  to: receiverClient.account.address,
+  value: 10n ** 18n,
+});
+
+```
+
+
+clientes de teste
+```
+const testClient = await viem.getTestClient();
+
+await testClient.mine({
+  blocks: 10,
+});
+
+```
+
+### Implantando e interagindo com contratos
+
+hardhat-vieminclui uma deployContractfunção para implantar contratos definidos no projeto. 
+Esta função retorna um viem instância de contrato do contrato implantado:
+
+```js
+import { network } from "hardhat";
+
+const { viem } = await network.connect();
+const counter = await viem.deployContract("Counter");
+
+await counter.write.inc();
+
+console.log("Counter value:", await counter.read.x());
+```
+
+Se o construtor aceitar parâmetros, você pode passá-los como o segundo argumento:
+
+```js
+const initialValue = 10n;
+const counter = await viem.deployContract("Counter", [initialValue]);
+```
+
+Por padrão, os contratos são implantados a partir da primeira conta definida na 
+configuração do Hardhat, mas você pode especificar uma diferente:
+
+
+```js
+const [wallet1, wallet2] = await viem.getWalletClients();
+
+const counter = await viem.deployContract("Counter", [10n], {
+  client: {
+    wallet: wallet2,
+  },
+});
+```
+
+A deployContractfunção aguarda até que o contrato seja implantado. 
+Se você quiser apenas enviar a implantação sem esperar até que ela seja minerada, 
+pode usar sendDeploymentTransaction:
+
+```js
+const { deploymentTransaction } = await viem.sendDeploymentTransaction(
+  "Counter",
+  [10n],
+  {
+    client: {
+      wallet: wallet2,
+    },
+  }
+);
+```
+
+Todos os exemplos anteriores implantam uma nova instância de contrato, 
+mas às vezes você precisa interagir com um contrato já implantado. 
+Nesses casos, use a getContractAtfunção:
+
+```javascript
+const counterAddress = "0x1234567890123456789012345678901234567890";
+const counter = await viem.getContractAt("Counter", counterAddress);
+``` 
+
+### Afirmações - Asserts - do viem
+
+O projeto de exemplo inclui o hardhat-viem-assertionsplugin, que ajuda você a escrever testes TypeScript 
+expressivos em projetos baseados em viem.
+
+Este plugin adiciona uma assertionspropriedade ao viemobjeto, fornecendo funções utilitárias para testar 
+o comportamento do contrato com mais facilidade. Por exemplo, o teste a seguir verifica se a chamada de 
+uma função emite o evento esperado:
+
+
+```javascript
+it("Should emit the Increment event when calling the inc() function", async function () {
+  const counter = await viem.deployContract("Counter");
+
+  await viem.assertions.emitWithArgs(
+    counter.write.inc(),
+    counter,
+    "Increment",
+    [1n]
+  );
+});
+``` 
+
+Você também pode afirmar que as transações são revertidas (e por quê) 
+ou verificar se os saldos das contas mudam conforme o esperado.
+
+### Iterações contratuais do tipo seguro
+
+O Viem tem poderosos recursos de digitação, disparando erros de compilação quando você comete erros 
+como usar o tipo errado em um argumento de função ou enviar valor para uma função não pagável:
+
+```javascript
+// doesn't compile if getItem expects a number but receives a string:
+await contract.read.getItem(["3"]);
+
+// doesn't compile if setItem is not payable:
+await contract.write.setItem([3, "three"], {
+  value: 1000n,
+});
+``` 
+
+Ao usar o viem sozinho, você precisa usar explicitamente a ABI do contrato para obter os 
+tipos inferidos corretamente. O hardhat-viem plugin lida com isso automaticamente em 
+auxiliares como deployContractou getContractAt.
+
+### Solução de problemas de erros de tipo de contrato
+
+Os tipos de contrato são atualizados quando o projeto é compilado. Se você estiver recebendo 
+um erro de compilação inesperado, certifique-se de ter executado hardhat build.
+
+Observe que o VSCode pode nem sempre detectar as atualizações de tipo automaticamente. 
+Se você ainda estiver recebendo erros inesperados do TypeScript após compilar o projeto, 
+abra o Paleta de Comandos e corra TypeScript: Reload Project.
+
+### Usando viem como um módulo
+
+O viemobjeto na conexão inclui apenas a funcionalidade adicionada por hardhat-viem. 
+Para usar a funcionalidade própria do viem, importe-a do viemmódulo:
+
+
+```javascript
+import { keccak256 } from "viem";
+import { network } from "hardhat";
+
+const { viem } = await network.connect();
+``` 
+
+Tenha em mente que você pode ter um conflito de nomes se usar uma importação de namespace:
+
+```javascript
+import * as viem from "viem";
+import { network } from "hardhat";
+
+// this is an error because viem is already declared
+const { viem } = await network.connect();
+```
+
+Uma maneira de contornar esse problema é usar um nome diferente para o objeto Hardhat viem:
+
+
+```javascript
+const { viem: hhViem } = await network.connect();
+const publicClient = await hhViem.getPublicClient();
+```
+
+
+
+
+
+
+
+
+
+
+
+
