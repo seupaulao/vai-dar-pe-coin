@@ -1,0 +1,39 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-b046887114f1c553c7f48a4c9286e09fc22eee18",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/VaiDarPeCoin.sol": "project/contracts/VaiDarPeCoin.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/VaiDarPeCoin.sol": {
+        "content": "\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.26;\n\ncontract VaiDarPeCoin {\n\n    event Transfer(address indexed from, address indexed to, uint256 value);\n    \n    string private constant _name=\"VaiDarPeCoin\";\n    string private constant _symbol=\"VAI\";\n    uint8 private constant _decimals=18;\n    uint256 private constant _totalSupply = 10000 * 10 ** _decimals;\n\n    mapping (address => uint256) private _balances;\n\n    constructor() {\n        _balances[msg.sender] = _totalSupply;\n    }\n\n    function name() public pure returns (string memory) {\n        return _name;\n    }\n    function symbol() public pure returns (string memory) {\n        return _symbol;\n    }\n    function decimals() public pure returns (uint) {\n        return _decimals;\n    }\n    function totalSupply() public pure returns (uint) {\n        return _totalSupply;\n    }        \n\n    function balanceOf(address owner) public view returns(uint256) {\n        return _balances[owner];\n    }\n\n    function transfer(address to, uint256 value) public returns(bool) {\n        require(balanceOf(msg.sender) >= value, \"Saldo Insuficiente\");\n        _balances[msg.sender] -= value;\n        _balances[to] += value;\n        emit Transfer(msg.sender, to, value);\n        return true;\n    }\n\n    mapping( address => mapping( address => uint256 ) ) private _allowances;\n\n    function allowances(address _owner, address _spender) public view returns (uint256) {\n        return _allowances[_owner][_spender];\n    }\n\n    event Approval(address indexed owner, address indexed spender, uint256 value);\n\n    function approve(address spender, uint256 value) public returns (bool) {\n        _allowances[msg.sender][spender] = value;\n        emit Approval(msg.sender, spender, value);\n        return true;\n    } \n\n    function transferFrom(address from, address to, uint256 value) public returns(bool) {\n        require(balanceOf(from) >= value, \"Saldo Insuficiente\");\n        require(allowances(from, msg.sender) >= value, \"Insufficient allowance\");\n        _allowances[from][msg.sender] -= value;\n        _balances[from] -= value;\n        _balances[to] += value;\n        emit Transfer(from, to, value);\n        return true; \n    }\n\n}"
+      }
+    }
+  }
+}

@@ -1,7 +1,5 @@
 ## Token ERC-20 VAI-DAR-PE-COIN
 
-## Usage
-
 ### Running Tests
 
 To run all the tests in the project, execute the following command:
@@ -29,16 +27,15 @@ Run tests specific contract:
 npx hardhat node
 ```
 
-
-### Make a deployment to Sepolia
-
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
-
-To run the deployment to a local chain:
+### Deploy Local
 
 ```shell
 npx hardhat ignition deploy ignition/modules/VaiDarPeCoin.ts
 ```
+
+### Deploy sepolia
+
+SEPOLIA_RPC = https://ethereum-sepolia-rpc.publicnode.com
 
 To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
 
